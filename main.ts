@@ -3,7 +3,7 @@
 // output directory and write /output/dossier.json with buildDossier.
 // Node standard library only; the output is byte-identical on every run.
 
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import { buildDossier } from "./vendor/makefun-game.ts";
@@ -12,8 +12,12 @@ const repoRoot = fileURLToPath(new URL("./", import.meta.url));
 const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? "/output";
 
 // Start from a clean output directory so stale files can never leak in.
-rmSync(outDir, { recursive: true, force: true });
+// Never remove the output directory itself: it may be a mount point
+// (rmdir on a mount point fails EBUSY). Only remove its contents.
 mkdirSync(outDir, { recursive: true });
+for (const child of readdirSync(outDir)) {
+  rmSync(join(outDir, child), { recursive: true, force: true });
+}
 
 for (const name of ["game", "screenshots"]) {
   const src = join(repoRoot, name);
